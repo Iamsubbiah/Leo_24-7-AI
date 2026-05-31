@@ -261,6 +261,18 @@ Fields:
 10. Response saved to database
 11. Chat title generated (if needed)
 
+Features
+Multi-chat management
+Long-term memory
+Conversation summaries
+Auto-generated titles
+SQLite persistence
+Streaming responses
+Personalized context
+Modular architecture
+Admin tooling
+Professional documentation
+
 ---
 
 # 🧩 Technology Stack
