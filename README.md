@@ -1,4 +1,4 @@
-# Leo_24-7-AI
+# Leo_24/7-AI
 # 🦁 LEO
 
 **LEO (Learning and Execution Optimizer)** is a local AI assistant built on top of **Phi-4 Mini** that combines conversational intelligence with long-term memory, personalized interactions, conversation summaries, and multi-chat management.
