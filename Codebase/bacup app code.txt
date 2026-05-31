@@ -1,0 +1,347 @@
+# ==========================================
+# app.py
+# ==========================================
+
+# User Interface Layer
+#
+# Responsibilities:
+# -----------------
+# 1. Streamlit Interface
+# 2. Multiple Chats
+# 3. Chat Window
+# 4. Message Streaming
+# 5. Memory Integration
+# 6. Summary Integration
+# 7. Context Building
+# 8. Response Generation
+#
+# This file connects all modules together.
+
+
+# Import required libraries.
+
+import streamlit as st
+
+from llm_handler import (
+    APP_NAME,
+    SYSTEM_PROMPT,
+    build_context,
+    stream_response
+)
+
+from chat_manager import (
+    create_chat,
+    load_all_chats,
+    delete_chat,
+    save_message,
+    load_messages,
+    load_recent_history,
+    should_summarize,
+    get_conversation_text,
+    ensure_default_chat,
+    update_chat_title,
+    needs_auto_title,
+    rename_chat,
+    get_latest_chat_id
+)
+
+from memory_manager import (
+    process_user_message,
+    update_chat_summary,
+    get_full_context,
+    generate_chat_title
+)
+
+
+# Configure page.
+
+st.set_page_config(
+    page_title=APP_NAME,
+    page_icon="🤖",
+    layout="wide"
+)
+
+
+# Initialize session state.
+
+if "current_chat_id" not in st.session_state:
+
+    st.session_state.current_chat_id = (
+        ensure_default_chat()
+    )
+
+
+# Load available chats.
+
+chats = load_all_chats()
+
+
+# Sidebar.
+
+with st.sidebar:
+
+    st.title(APP_NAME)
+
+    # Create new chat.
+    if st.button(
+        "➕ New Chat",
+        use_container_width=True
+    ):
+
+        create_chat(
+            "Untitled Chat"
+        )
+
+        new_chat_id = (
+            get_latest_chat_id()
+        )
+
+        st.session_state.current_chat_id = (
+            new_chat_id
+        )
+
+        st.rerun()
+
+    st.divider()
+
+    # Chat selection.
+
+    for chat in chats:
+
+        chat_id = chat[0]
+        chat_name = chat[1]
+
+        col1, col2 = st.columns(
+            [8, 1]
+        )
+
+       
+        with col1:
+
+            if st.button(
+                chat_name,
+                key=f"chat_{chat_id}",
+                use_container_width=True
+            ):
+
+                st.session_state.current_chat_id = (
+                    chat_id
+                )
+
+                st.rerun()
+
+        with col2:
+
+            if st.button(
+                "Delete",
+                key=f"delete_btn_{chat_id}"
+
+            ):
+
+                delete_chat(chat_id)
+
+                st.rerun()
+        with col2:
+            with st.popover(
+                f"⋮",
+                use_container_width=True
+            ):
+
+                if st.button(
+                    "Rename",
+                    key=f"rename_{chat_id}"
+                ):
+
+                    new_name = st.text_input(
+                        "New Name",
+                        value=chat_name,
+                        key=f"rename_btn_{chat_id}"
+                    )
+
+                    if st.button(
+                        "Save",
+                        key=f"save_btn_{chat_id}"
+
+
+                    ):
+
+                        rename_chat(
+                            chat_id,
+                            new_name
+                        )
+
+                        st.rerun()
+
+                if st.button(
+                    "Delete",
+                    key=f"delete_{chat_id}"
+                ):
+
+                    delete_chat(
+                        chat_id
+                    )
+
+                    st.rerun()
+
+
+# Current chat.
+
+chat_id = (
+    st.session_state.current_chat_id
+)
+
+
+# Chat title.
+
+st.title(APP_NAME)
+
+
+# Load chat history.
+
+messages = load_messages(
+    chat_id
+)
+
+
+# Display chat history.
+
+for role, content in messages:
+
+    with st.chat_message(role):
+
+        st.markdown(content)
+
+
+# User input.
+
+prompt = st.chat_input(
+    "Ask anything..."
+)
+
+
+# Process user message.
+
+if prompt:
+    
+    # Display user message.
+
+    with st.chat_message("user"):
+
+        st.markdown(prompt)
+
+    # Save user message.
+
+    save_message(
+        chat_id,
+        "user",
+        prompt
+    )
+
+    # Update memory system.
+
+    process_user_message(
+        prompt
+    )
+
+    # Generate summary if needed.
+
+    if should_summarize(
+        chat_id
+    ):
+
+        conversation_text = (
+            get_conversation_text(
+                chat_id
+            )
+        )
+
+        update_chat_summary(
+            chat_id,
+            conversation_text
+        )
+
+    # Load memory context.
+
+    memories, summary = (
+        get_full_context(
+            chat_id
+        )
+    )
+
+    # Load recent history.
+
+    recent_history = (
+        load_recent_history(
+            chat_id
+        )
+    )
+
+    # Build final context.
+
+    final_context = (
+        build_context(
+            SYSTEM_PROMPT,
+            memories,
+            summary,
+            recent_history,
+            prompt
+        )
+    )
+
+    # Prepare LLM request.
+
+    llm_messages = [
+        {
+            "role": "user",
+            "content": final_context
+        }
+    ]
+
+    # Display assistant response.
+
+    with st.chat_message(
+        "assistant"
+    ):
+
+        response_placeholder = (
+            st.empty()
+        )
+
+        full_response = ""
+
+        for token in stream_response(
+            llm_messages
+        ):
+
+            full_response += token
+
+            response_placeholder.markdown(
+                full_response
+            )
+
+    # Save assistant response.
+
+    save_message(
+        chat_id,
+        "assistant",
+        full_response
+    )
+    # Generate chat title once.
+    if needs_auto_title(
+        chat_id
+    ):
+
+        conversation_text = (
+            get_conversation_text(
+                chat_id
+            )
+        )
+
+        title = generate_chat_title(
+            conversation_text
+        )
+
+        update_chat_title(
+            chat_id,
+            title
+        )
