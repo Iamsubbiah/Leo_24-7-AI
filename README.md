@@ -9,6 +9,17 @@ Unlike a basic chatbot, LEO is designed to remember important information, maint
 
 # 🚀 Features
 
+# Multi-chat management
+# Long-term memory
+# Conversation summaries
+# Auto-generated titles
+# SQLite persistence
+# Streaming responses
+# Personalized context
+# Modular architecture
+# Admin tooling
+# Professional documentation
+
 ## 🧠 Long-Term Memory
 
 LEO extracts important facts from conversations and stores them for future use.
@@ -260,18 +271,6 @@ Fields:
 9. Response streamed to user
 10. Response saved to database
 11. Chat title generated (if needed)
-
-Features
-Multi-chat management
-Long-term memory
-Conversation summaries
-Auto-generated titles
-SQLite persistence
-Streaming responses
-Personalized context
-Modular architecture
-Admin tooling
-Professional documentation
 
 ---
 
